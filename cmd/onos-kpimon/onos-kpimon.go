@@ -6,10 +6,12 @@ package main
 
 import (
 	"flag"
-
 	"github.com/onosproject/onos-kpimon/pkg/manager"
 	"github.com/onosproject/onos-lib-go/pkg/certs"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 var log = logging.GetLogger("main")
@@ -24,8 +26,6 @@ func main() {
 	grpcPort := flag.Int("grpcPort", 5150, "grpc Port number")
 	smName := flag.String("smName", "oran-e2sm-kpm", "Service model name in RAN function description")
 	smVersion := flag.String("smVersion", "v2", "Service model version in RAN function description")
-
-	ready := make(chan bool)
 
 	flag.Parse()
 
@@ -49,5 +49,9 @@ func main() {
 
 	mgr := manager.NewManager(cfg)
 	mgr.Run()
-	<-ready
+
+	killSignal := make(chan os.Signal, 1)
+	signal.Notify(killSignal, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	log.Info("app: received a shutdown signal:", <-killSignal)
+	mgr.Close()
 }
